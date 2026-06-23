@@ -1,0 +1,43 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ "main", "master" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Récupération du code
+        uses: actions/checkout@v4
+
+      - name: Configuration de Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Installation des dépendances (Capacitor)
+        run: npm install
+
+      - name: Synchronisation des fichiers web vers Android
+        run: npx cap sync android
+
+      - name: Configuration de Java (Nécessaire pour Android)
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '21'
+
+      - name: Rendre le script Gradle exécutable
+        run: chmod +x ./android/gradlew
+
+      - name: Compilation de l'APK Android
+        working-directory: ./android
+        run: ./gradlew assembleDebug
+
+      - name: Sauvegarde de l'APK (Artefact)
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-sakafom-scanner
+          path: android/app/build/outputs/apk/debug/app-debug.apk
