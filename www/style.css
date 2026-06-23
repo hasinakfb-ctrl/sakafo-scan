@@ -1,0 +1,67 @@
+/* style.css */
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, sans-serif; }
+body { display: flex; flex-direction: column; height: 100vh; background: #f4f4f9; overflow: hidden; }
+
+/* Header & Caméra */
+header { background: #2c3e50; color: white; padding: 15px; display: flex; align-items: center; gap: 15px; z-index: 10; }
+.logo { background: #e74c3c; padding: 10px; border-radius: 8px; font-weight: bold; }
+main { flex: 1; display: flex; flex-direction: column; }
+#reader-container { flex: 1; display: flex; justify-content: center; align-items: center; background: #000; overflow: hidden; }
+#qr-reader { width: 100%; max-width: 500px; border: none; }
+#status-panel { padding: 15px; text-align: center; background: #34495e; color: white; }
+
+/* LE NOUVEL ECRAN PLEIN FORMAT (OVERLAY) */
+#result-overlay {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    text-align: center;
+    padding: 20px;
+    transition: opacity 0.2s ease-in-out;
+}
+
+/* Cache l'écran par défaut */
+#result-overlay.hidden { display: none; opacity: 0; }
+
+/* Les Fonds Vifs demandés */
+#result-overlay.success { background-color: #27ae60; } /* Vert */
+#result-overlay.error { background-color: #c0392b; animation: shake 0.4s; } /* Rouge + Tremblement */
+
+#result-title { font-size: 2.5rem; text-transform: uppercase; font-weight: 900; letter-spacing: 2px; }
+
+/* LE NUMERO DU TICKET EN ENORME */
+#result-ticket {
+    font-size: 5rem;
+    font-weight: 900;
+    margin: 30px 0;
+    text-shadow: 2px 4px 10px rgba(0,0,0,0.4); /* Donne du relief au texte */
+}
+
+#result-message { font-size: 1.2rem; margin-bottom: 40px; font-weight: 500; }
+
+/* Bouton d'action */
+#close-btn {
+    padding: 15px 40px;
+    font-size: 1.2rem;
+    font-weight: bold;
+    border: none;
+    border-radius: 50px;
+    background: white;
+    color: #333;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+}
+
+#close-btn:active { transform: scale(0.95); }
+
+/* Animation de tremblement en cas de fraude */
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-15px); }
+    75% { transform: translateX(15px); }
+}

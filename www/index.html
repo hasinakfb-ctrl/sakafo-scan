@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Scanner - Sakafom-pitiavana</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+</head>
+<body>
+    <header>
+        <div class="logo">SP</div>
+        <div class="titre-container">
+            <h1>Sakafom-pitiavana</h1>
+            <p>Contrôle des billets</p>
+        </div>
+    </header>
+
+    <main>
+        <div id="reader-container">
+            <div id="qr-reader"></div>
+        </div>
+        <div id="status-panel">
+            <h2>Prêt à scanner</h2>
+            <p>Pointez la caméra vers un code QR</p>
+        </div>
+    </main>
+
+    <div id="result-overlay" class="hidden">
+        <h2 id="result-title">VALIDE</h2>
+        
+        <div id="result-ticket">N° 000</div>
+        
+        <p id="result-message">Message détaillé ici</p>
+        
+        <button id="close-btn" onclick="closeOverlay()">Scanner un autre billet</button>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
