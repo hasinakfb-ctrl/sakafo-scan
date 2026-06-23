@@ -3,37 +3,47 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Scanner - Sakafom-pitiavana</title>
+    <title>Scanner Sakafom</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 </head>
 <body>
-    <header>
-        <div class="logo">SP</div>
-        <div class="titre-container">
-            <h1>Sakafom-pitiavana</h1>
-            <p>Contrôle des billets</p>
-        </div>
-    </header>
 
-    <main>
-        <div id="reader-container">
-            <div id="qr-reader"></div>
-        </div>
-        <div id="status-panel">
-            <h2>Prêt à scanner</h2>
-            <p>Pointez la caméra vers un code QR</p>
-        </div>
-    </main>
+    <div id="splash-screen" class="screen active">
+        <img src="logo.png" alt="Logo Sakafom" class="splash-logo">
+        <div class="loader"></div>
+    </div>
 
-    <div id="result-overlay" class="hidden">
-        <h2 id="result-title">VALIDE</h2>
-        
-        <div id="result-ticket">N° 000</div>
-        
-        <p id="result-message">Message détaillé ici</p>
-        
-        <button id="close-btn" onclick="closeOverlay()">Scanner un autre billet</button>
+    <div id="home-screen" class="screen">
+        <img src="logo.png" alt="Logo Sakafom" class="menu-logo">
+        <h1>SAKAFOM-PITIAVANA</h1>
+        <div class="menu-buttons">
+            <button id="btn-go-scan" class="btn-primary">📷 Démarrer le Scanner</button>
+            <button id="btn-go-stats" class="btn-secondary">📊 État des lieux</button>
+            <button class="btn-disabled">⚙️ Options (Bientôt)</button>
+        </div>
+    </div>
+
+    <div id="scanner-screen" class="screen">
+        <button id="btn-back-home" class="btn-back">⬅ Retour au menu</button>
+        <div id="qr-reader"></div>
+        <div id="result-overlay" class="hidden">
+            <h1 id="result-ticket"></h1>
+            <h2 id="result-title"></h2>
+            <p id="result-message"></p>
+            <button id="btn-next">Scanner le suivant</button>
+        </div>
+    </div>
+
+    <div id="stats-screen" class="screen">
+        <button id="btn-back-home2" class="btn-back">⬅ Retour au menu</button>
+        <h2>État des lieux</h2>
+        <div class="stats-card">
+            <p>Billets scannés : <strong id="stat-scanned">...</strong></p>
+            <p>Reste à scanner : <strong id="stat-remaining">...</strong></p>
+            <p>Total prévu : <strong>500</strong></p>
+        </div>
+        <button id="btn-refresh-stats" class="btn-secondary">🔄 Rafraîchir</button>
     </div>
 
     <script src="app.js"></script>
