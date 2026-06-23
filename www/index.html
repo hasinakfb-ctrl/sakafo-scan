@@ -10,40 +10,77 @@
 <body>
 
     <div id="splash-screen" class="screen active">
-        <img src="Logo.png" alt="Logo Sakafom" class="splash-logo">
+        <img src="logo.png" alt="Logo Sakafom" class="splash-logo">
         <div class="loader"></div>
     </div>
 
     <div id="home-screen" class="screen">
-        <img src="Logo.png" alt="Logo Sakafom" class="menu-logo">
-        <h1>SAKAFOM-PITIAVANA</h1>
+        <img src="logo.png" alt="Logo Sakafom" class="menu-logo">
+        <h1 class="app-title">SAKAFOM-PITIAVANA</h1>
+        <p class="app-subtitle">Gestion des Entrées</p>
+        
         <div class="menu-buttons">
-            <button id="btn-go-scan" class="btn-primary">📷 Démarrer le Scanner</button>
-            <button id="btn-go-stats" class="btn-secondary">📊 État des lieux</button>
-            <button class="btn-disabled">⚙️ Options (Bientôt)</button>
+            <button id="btn-go-scan" class="btn-menu btn-scan">📷 Démarrer le Scanner</button>
+            <button id="btn-go-manual" class="btn-menu btn-manual">✏ Validation Manuelle</button>
+            <button id="btn-go-stats" class="btn-menu btn-stats">📊 État des Lieux</button>
+            <button id="btn-go-about" class="btn-menu btn-about">ℹ À Propos</button>
         </div>
     </div>
 
     <div id="scanner-screen" class="screen">
-        <button id="btn-back-home" class="btn-back">⬅ Retour au menu</button>
+        <button id="btn-back-home1" class="btn-back">⬅ Menu principal</button>
         <div id="qr-reader"></div>
         <div id="result-overlay" class="hidden">
             <h1 id="result-ticket"></h1>
             <h2 id="result-title"></h2>
             <p id="result-message"></p>
-            <button id="btn-next">Scanner le suivant</button>
+            <button id="btn-next">Suivant ➔</button>
         </div>
     </div>
 
-    <div id="stats-screen" class="screen">
-        <button id="btn-back-home2" class="btn-back">⬅ Retour au menu</button>
-        <h2>État des lieux</h2>
-        <div class="stats-card">
-            <p>Billets scannés : <strong id="stat-scanned">...</strong></p>
-            <p>Reste à scanner : <strong id="stat-remaining">...</strong></p>
-            <p>Total prévu : <strong>500</strong></p>
+    <div id="manual-screen" class="screen">
+        <button id="btn-back-home2" class="btn-back">⬅ Menu principal</button>
+        <h2>Validation Manuelle</h2>
+        <p class="section-desc">Entrez le numéro du billet écrit sur le ticket (ex: N° 001)</p>
+        <div class="input-group">
+            <input type="text" id="manual-ticket-input" placeholder="Ex: N° 001..." autocomplete="off">
+            <button id="btn-submit-manual" class="btn-primary">Valider le Billet</button>
         </div>
-        <button id="btn-refresh-stats" class="btn-secondary">🔄 Rafraîchir</button>
+        <div id="manual-result" class="manual-result-box hidden"></div>
+    </div>
+
+    <div id="stats-screen" class="screen">
+        <button id="btn-back-home3" class="btn-back">⬅ Menu principal</button>
+        <h2>État des Lieux</h2>
+        
+        <div class="compact-stats-grid">
+            <div class="stat-box box-green">
+                <span class="stat-label">Scannés</span>
+                <span id="stat-scanned" class="stat-number">...</span>
+            </div>
+            <div class="stat-box box-orange">
+                <span class="stat-label">Restants</span>
+                <span id="stat-remaining" class="stat-number">...</span>
+            </div>
+            <div class="stat-box box-gray">
+                <span class="stat-label">Total Prévu</span>
+                <span id="stat-total" class="stat-number">500</span>
+            </div>
+        </div>
+
+        <div class="stats-actions">
+            <button id="btn-refresh-stats" class="btn-secondary">🔄 Rafraîchir les données</button>
+            <button id="btn-reset-stats" class="btn-danger">⚠️ Réinitialiser la liste (Reset)</button>
+        </div>
+    </div>
+
+    <div id="about-screen" class="screen">
+        <button id="btn-back-home4" class="btn-back">⬅ Menu principal</button>
+        <div class="about-card">
+            <img src="logo.png" alt="Logo" class="about-logo">
+            <h3>Scanner Sakafom v2.0</h3>
+            <p class="about-text">Application développée par KFB pour KFB Ministries</p>
+        </div>
     </div>
 
     <script src="app.js"></script>
