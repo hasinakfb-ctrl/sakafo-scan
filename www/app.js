@@ -1,4 +1,4 @@
-const API_URL = "https://script.google.com/macros/s/VOTRE_CODE_A_REMPLACER/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbyd1wbja2174XuQoPdvlX0zdsJEM1IqLt1eJCBeyJaDZKz2Mkd-6tbeMt6kfgtz-rAO-A/exec";
 
 // Éléments de l'interface
 const screens = {
