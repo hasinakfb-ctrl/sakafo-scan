@@ -1,102 +1,118 @@
-/* app.js */
+const API_URL = "https://script.google.com/macros/s/VOTRE_CODE_A_REMPLACER/exec";
 
-const API_URL = "https://script.google.com/macros/s/AKfycbwyJVA9V5jFhn9l8A8JJjf6QXac_8V5PWUTcNI2QL1nlmcevkz--kWD8oxbZ_85K-ysxQ/exec"; 
+// Éléments de l'interface
+const screens = {
+    splash: document.getElementById('splash-screen'),
+    home: document.getElementById('home-screen'),
+    scanner: document.getElementById('scanner-screen'),
+    stats: document.getElementById('stats-screen')
+};
 
+let html5QrcodeScanner = null;
 let isProcessing = false;
 
-// Récupération des éléments du nouvel écran plein format
-const resultOverlay = document.getElementById('result-overlay');
-const resultTitle = document.getElementById('result-title');
-const resultTicket = document.getElementById('result-ticket');
-const resultMessage = document.getElementById('result-message');
-
-// Bips et Vibrations natifs
-function playNotification(type) {
-    try {
-        const ctx = new (window.AudioContext || window.webkitAudioContext)();
-        const osc = ctx.createOscillator();
-        const gainNode = ctx.createGain();
-        osc.connect(gainNode);
-        gainNode.connect(ctx.destination);
-        
-        if (type === 'success') {
-            osc.type = 'sine'; osc.frequency.value = 880;
-            gainNode.gain.setValueAtTime(0.1, ctx.currentTime);
-            osc.start(); osc.stop(ctx.currentTime + 0.2);
-        } else if (type === 'error') {
-            osc.type = 'sawtooth'; osc.frequency.value = 150;
-            gainNode.gain.setValueAtTime(0.3, ctx.currentTime);
-            osc.start();
-            setTimeout(() => osc.frequency.value = 120, 150);
-            osc.stop(ctx.currentTime + 0.4);
-            if (navigator.vibrate) navigator.vibrate([300, 100, 300]);
-        }
-    } catch (e) { console.log("Audio non supporté", e); }
+// --- GESTION DES ÉCRANS ---
+function showScreen(screenName) {
+    Object.values(screens).forEach(s => s.classList.remove('active'));
+    screens[screenName].classList.add('active');
 }
 
-// Fonction pour afficher l'écran Vert (success) ou Rouge (error)
-function showResult(status, ticketNumber, title, message) {
-    resultOverlay.className = status; // Applique la couleur de fond
-    resultTicket.innerText = ticketNumber; // Affiche le GROS NUMERO
-    resultTitle.innerText = title;
-    resultMessage.innerText = message;
+// Faux chargement au démarrage (2 secondes)
+setTimeout(() => { showScreen('home'); }, 2000);
+
+// --- NAVIGATION ---
+document.getElementById('btn-go-scan').addEventListener('click', () => {
+    showScreen('scanner');
+    startScanner();
+});
+
+document.getElementById('btn-go-stats').addEventListener('click', () => {
+    showScreen('stats');
+    fetchStats();
+});
+
+document.getElementById('btn-back-home').addEventListener('click', () => { stopScanner(); showScreen('home'); });
+document.getElementById('btn-back-home2').addEventListener('click', () => { showScreen('home'); });
+document.getElementById('btn-refresh-stats').addEventListener('click', fetchStats);
+
+// --- SCANNER ---
+function startScanner() {
+    isProcessing = false;
+    document.getElementById('result-overlay').classList.add('hidden');
     
-    playNotification(status);
+    // On force la caméra arrière (environment)
+    html5QrcodeScanner = new Html5QrcodeScanner("qr-reader", { 
+        fps: 10, 
+        qrbox: { width: 250, height: 250 },
+        videoConstraints: { facingMode: "environment" }
+    }, false);
+    
+    html5QrcodeScanner.render(onScanSuccess);
 }
 
-// Fonction liée au bouton pour fermer l'alerte
-function closeOverlay() {
-    resultOverlay.className = 'hidden';
-    // Attend 1 seconde pour éviter de re-scanner par erreur le même billet instantanément
-    setTimeout(() => { isProcessing = false; }, 1000);
+function stopScanner() {
+    if (html5QrcodeScanner) {
+        html5QrcodeScanner.clear();
+    }
 }
 
-// Quand la caméra détecte un QR Code
-// Quand la caméra détecte un QR Code
-function checkTicket(qrCodeText) {
+function onScanSuccess(qrCodeText) {
     if (isProcessing) return;
     isProcessing = true;
     
+    if (navigator.vibrate) navigator.vibrate(50);
     const ticketNumber = qrCodeText.trim();
-
-    // 1. RETOUR INSTANTANÉ : On vibre légèrement et on affiche l'écran Orange
-    if (navigator.vibrate) navigator.vibrate(50); // Petite vibration de confirmation
-    resultOverlay.className = 'loading'; // Affiche le fond orange
-    resultTicket.innerText = ticketNumber;
-    resultTitle.innerText = 'VÉRIFICATION...';
-    resultMessage.innerText = 'Connexion à la base de données...';
     
-    // 2. On contacte Google Sheets
+    const overlay = document.getElementById('result-overlay');
+    overlay.className = 'loading';
+    document.getElementById('result-ticket').innerText = ticketNumber;
+    document.getElementById('result-title').innerText = 'VÉRIFICATION...';
+    document.getElementById('result-message').innerText = '';
+
     fetch(API_URL, {
         method: 'POST',
         body: JSON.stringify({ qrCode: ticketNumber }),
         headers: { 'Content-Type': 'text/plain;charset=utf-8' }
     })
-    .then(response => {
-        if (!response.ok) throw new Error("Coupure réseau");
-        return response.json();
-    })
+    .then(res => res.json())
     .then(data => {
-        // 3. On remplace l'écran Orange par le Vert ou le Rouge
         if (data.status === 'valid') {
-            showResult('success', ticketNumber, 'VALIDE', 'Enregistré avec succès.');
+            overlay.className = 'success';
+            document.getElementById('result-title').innerText = 'VALIDE';
         } else if (data.status === 'used') {
-            showResult('error', ticketNumber, 'FRAUDE !', 'Billet DÉJÀ SCANNÉ !');
+            if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+            overlay.className = 'error';
+            document.getElementById('result-title').innerText = 'DÉJÀ SCANNÉ';
         } else {
-            showResult('error', ticketNumber, 'INCONNU', 'Ce code n\'est pas dans la liste.');
+            overlay.className = 'error';
+            document.getElementById('result-title').innerText = 'INCONNU';
         }
-    })
-    .catch(err => {
-        // En cas de micro-coupure internet, on affiche un message plus clair
-        showResult('error', ticketNumber, 'RÉSEAU FAIBLE', 'Vérifiez la connexion 4G/Wifi et réessayez.');
+    }).catch(err => {
+        overlay.className = 'error';
+        document.getElementById('result-title').innerText = 'ERREUR RÉSEAU';
     });
 }
-// Initialisation de la caméra
-window.addEventListener('DOMContentLoaded', () => {
-    const scanner = new Html5QrcodeScanner(
-        "qr-reader", 
-        { fps: 15, qrbox: { width: 250, height: 250 } }, 
-        false
-    );
-    scanner.render((decodedText) => checkTicket(decodedText));
+
+document.getElementById('btn-next').addEventListener('click', () => {
+    isProcessing = false;
+    document.getElementById('result-overlay').className = 'hidden';
 });
+
+// --- STATISTIQUES ---
+function fetchStats() {
+    document.getElementById('stat-scanned').innerText = "...";
+    document.getElementById('stat-remaining').innerText = "...";
+
+    fetch(API_URL, {
+        method: 'POST',
+        body: JSON.stringify({ action: 'stats' }),
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+    })
+    .then(res => res.json())
+    .then(data => {
+        if(data.status === 'success') {
+            document.getElementById('stat-scanned').innerText = data.scanned;
+            document.getElementById('stat-remaining').innerText = data.remaining;
+        }
+    });
+}
