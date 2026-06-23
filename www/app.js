@@ -52,34 +52,45 @@ function closeOverlay() {
 }
 
 // Quand la caméra détecte un QR Code
+// Quand la caméra détecte un QR Code
 function checkTicket(qrCodeText) {
     if (isProcessing) return;
     isProcessing = true;
     
-    // Le texte contenu dans le QR code (ex: "N° 001") devient le numéro affiché
     const ticketNumber = qrCodeText.trim();
 
-    // Code réel pour Google Sheets
+    // 1. RETOUR INSTANTANÉ : On vibre légèrement et on affiche l'écran Orange
+    if (navigator.vibrate) navigator.vibrate(50); // Petite vibration de confirmation
+    resultOverlay.className = 'loading'; // Affiche le fond orange
+    resultTicket.innerText = ticketNumber;
+    resultTitle.innerText = 'VÉRIFICATION...';
+    resultMessage.innerText = 'Connexion à la base de données...';
+    
+    // 2. On contacte Google Sheets
     fetch(API_URL, {
         method: 'POST',
         body: JSON.stringify({ qrCode: ticketNumber }),
         headers: { 'Content-Type': 'text/plain;charset=utf-8' }
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) throw new Error("Coupure réseau");
+        return response.json();
+    })
     .then(data => {
+        // 3. On remplace l'écran Orange par le Vert ou le Rouge
         if (data.status === 'valid') {
             showResult('success', ticketNumber, 'VALIDE', 'Enregistré avec succès.');
         } else if (data.status === 'used') {
             showResult('error', ticketNumber, 'FRAUDE !', 'Billet DÉJÀ SCANNÉ !');
         } else {
-            showResult('error', ticketNumber, 'INCONNU', 'Code non répertorié.');
+            showResult('error', ticketNumber, 'INCONNU', 'Ce code n\'est pas dans la liste.');
         }
     })
     .catch(err => {
-        showResult('error', ticketNumber, 'ERREUR RÉSEAU', 'Impossible de vérifier.');
+        // En cas de micro-coupure internet, on affiche un message plus clair
+        showResult('error', ticketNumber, 'RÉSEAU FAIBLE', 'Vérifiez la connexion 4G/Wifi et réessayez.');
     });
 }
-
 // Initialisation de la caméra
 window.addEventListener('DOMContentLoaded', () => {
     const scanner = new Html5QrcodeScanner(
