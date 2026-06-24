@@ -7,8 +7,8 @@
     
     <link rel="icon" href="Logo.png" type="image/png">
     <link rel="apple-touch-icon" href="Logo.png">
-    
     <link rel="stylesheet" href="style.css">
+    
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 </head>
 <body>
@@ -40,6 +40,7 @@
             <button id="btn-go-scan" class="btn-menu btn-scan">📷 Démarrer le Scanner</button>
             <button id="btn-go-stats" class="btn-menu btn-stats">📊 État des Lieux</button>
             <button id="btn-go-about" class="btn-menu btn-about">ℹ️ À Propos</button>
+            <button id="btn-quit" class="btn-menu btn-quit" style="margin-top: 15px; background-color: #e74c3c;">🚪 Quitter l'application</button>
         </div>
     </div>
 
@@ -75,7 +76,7 @@
             </div>
         </div>
 
-        <button id="btn-more-stats" class="btn-secondary" style="margin-bottom: 20px;">🔍 Voir les détails par agent</button>
+        <button id="btn-more-stats" class="btn-secondary" style="margin-bottom: 20px;">🔍 Afficher les détails</button>
         <div id="details-stats-box" class="hidden">
             </div>
 
@@ -89,9 +90,15 @@
         <button id="btn-back-home4" class="btn-back">⬅ Menu principal</button>
         <div class="about-card">
             <img src="Logo.png" alt="Logo" class="about-logo">
-            <h3>Scanner Sakafom-pitiavana v3.2</h3>
-            <p class="about-text">Application prototype <br> Développée par KFB Tech team pour KFB Ministries. Ho an'i Jesosy irery ihany ny voninahitra !</p>
+            <h3>Scanner Sakafom-pitiavana v4.0</h3>
+            <p class="about-text">Application Pro "Silicon Valley"<br> Développée par KFB Tech team pour KFB Ministries.<br>Ho an'i Jesosy irery ihany ny voninahitra !</p>
         </div>
+    </div>
+
+    <div id="toast-container"></div>
+    <div id="farewell-screen" class="hidden">
+        <img src="Logo.png" alt="Logo" style="width:100px; margin-bottom: 20px;">
+        <div>Tahian'i Jesosy e !</div>
     </div>
 
     <script src="app.js"></script>
