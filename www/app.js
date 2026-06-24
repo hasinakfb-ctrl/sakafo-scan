@@ -1,11 +1,16 @@
-// REMPLACEZ BIEN PAR VOTRE LIEN DE DEPLOIEMENT GOOGLE APPS SCRIPT
-const API_URL = "https://script.google.com/macros/s/AKfycbz_z79F3y57Ek0dOchmdcgYx_9isX3MWMVxw1JoLJ8_wuP_4ZswJ33yMU5EcAz3aUvi8w/exec";
+// CONFIGURATION : LIEN DE DEPLOIEMENT GOOGLE APPS SCRIPT
+const API_URL = "https://script.google.com/macros/s/AKfycbzTx82Wz5mw4OuLV-WvEqQ3MZSJc5DsyMBdXTKu1fzdj1LB_UEFFdceR_3FpD8wd2YiLg/exec";
+
+// Initialisation des mémoires locales persistantes
+let localDB = JSON.parse(localStorage.getItem('sakafom_db')) || [];
+let syncQueue = JSON.parse(localStorage.getItem('sakafom_queue')) || [];
+let currentUser = localStorage.getItem('sakafom_user') || null;
 
 const screens = {
     splash: document.getElementById('splash-screen'),
+    user: document.getElementById('user-screen'),
     home: document.getElementById('home-screen'),
     scanner: document.getElementById('scanner-screen'),
-    manual: document.getElementById('manual-screen'),
     stats: document.getElementById('stats-screen'),
     about: document.getElementById('about-screen')
 };
@@ -13,196 +18,213 @@ const screens = {
 let html5QrcodeScanner = null;
 let isProcessing = false;
 
-// Navigation Inter-écrans
+// --- CYCLE DE DÉMARRAGE ---
+function initApp() {
+    setTimeout(() => {
+        if (!currentUser) { 
+            showScreen('user'); 
+        } else { 
+            document.getElementById('current-user-display').innerText = currentUser; 
+            showScreen('home'); 
+            updateSyncUI(); 
+            fetchDatabase(); // Téléchargement transparent en tâche de fond
+        }
+    }, 1500);
+}
+initApp();
+
 function showScreen(screenName) {
     Object.values(screens).forEach(s => s.classList.remove('active'));
     screens[screenName].classList.add('active');
-    document.getElementById('manual-result').classList.add('hidden');
-    document.getElementById('manual-ticket-input').value = "";
 }
 
-// Faux chargement de démarrage (2 secondes)
-setTimeout(() => { showScreen('home'); }, 2000);
+// GESTION AGENTS / UTILISATEURS
+function setUser(name) {
+    currentUser = name;
+    localStorage.setItem('sakafom_user', name);
+    document.getElementById('current-user-display').innerText = currentUser;
+    showScreen('home');
+    fetchDatabase();
+}
 
-// Événements boutons de Navigation
+function logout() {
+    currentUser = null;
+    localStorage.removeItem('sakafom_user');
+    showScreen('user');
+}
+
+// NAVIGATIONS
 document.getElementById('btn-go-scan').addEventListener('click', () => { showScreen('scanner'); startScanner(); });
-document.getElementById('btn-go-manual').addEventListener('click', () => { showScreen('manual'); });
-document.getElementById('btn-go-stats').addEventListener('click', () => { showScreen('stats'); fetchStats(); });
+document.getElementById('btn-go-stats').addEventListener('click', () => { showScreen('stats'); loadLocalStats(); });
 document.getElementById('btn-go-about').addEventListener('click', () => { showScreen('about'); });
 
-document.getElementById('btn-back-home1').addEventListener('click', () => { stopScanner(); showScreen('home'); });
-document.getElementById('btn-back-home2').addEventListener('click', () => { showScreen('home'); });
+document.getElementById('btn-back-home1').addEventListener('click', () => { stopScanner(); showScreen('home'); updateSyncUI(); });
 document.getElementById('btn-back-home3').addEventListener('click', () => { showScreen('home'); });
 document.getElementById('btn-back-home4').addEventListener('click', () => { showScreen('home'); });
 
-document.getElementById('btn-refresh-stats').addEventListener('click', fetchStats);
+// --- SYNCHRONISATION OFFLINE-FIRST ---
+function fetchDatabase() {
+    const statusBox = document.getElementById('sync-status');
+    statusBox.innerText = "⏳ Actualisation de la liste...";
+    statusBox.style.background = "#e1b12c";
+    statusBox.style.color = "#111111";
 
-// --- PARTIE 1 : SCANNER QR CODE ---
+    fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'fetch_db' }) })
+    .then(res => res.json())
+    .then(data => {
+        if(data.status === 'success') {
+            localDB = data.db;
+            localStorage.setItem('sakafom_db', JSON.stringify(localDB));
+            updateSyncUI();
+        }
+    })
+    .catch(() => { 
+        console.log("Réseau indisponible. Mode cache local activé.");
+        updateSyncUI(); 
+    });
+}
+
+function updateSyncUI() {
+    const statusBox = document.getElementById('sync-status');
+    if (syncQueue.length > 0) { 
+        statusBox.innerText = `⚠️ ${syncQueue.length} scan(s) en attente de réseau...`; 
+        statusBox.style.background = "#e67e22"; 
+        statusBox.style.color = "#ffffff";
+        pushSyncQueue(); // Tente une transmission discrète
+    } else { 
+        statusBox.innerText = `🟢 Base synchronisée (${localDB.length} places). Prêt.`; 
+        statusBox.style.background = "#2ecc71"; 
+        statusBox.style.color = "#ffffff";
+    }
+}
+
+function pushSyncQueue() {
+    if (syncQueue.length === 0) return;
+    
+    fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'sync_batch', batch: syncQueue }) })
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === 'success') {
+            syncQueue = []; 
+            localStorage.setItem('sync_queue', JSON.stringify([]));
+            updateSyncUI();
+        }
+    })
+    .catch(() => console.log("Attente signal Internet pour vider la file..."));
+}
+
+// --- SCANNER EN CONTINU (SANS CLIC - EFFET FRUIT NINJA) ---
 function startScanner() {
     isProcessing = false;
     document.getElementById('result-overlay').classList.add('hidden');
-    
     html5QrcodeScanner = new Html5QrcodeScanner("qr-reader", { 
-        fps: 12, 
+        fps: 20, // Plus rapide pour l'extérieur
         qrbox: { width: 250, height: 250 },
-        videoConstraints: { facingMode: "environment" } // Caméra arrière d'office
+        videoConstraints: { facingMode: "environment" }
     }, false);
-    
     html5QrcodeScanner.render(onScanSuccess);
 }
 
-function stopScanner() {
-    if (html5QrcodeScanner) {
-        html5QrcodeScanner.clear().catch(err => console.log(err));
-    }
+function stopScanner() { 
+    if (html5QrcodeScanner) { html5QrcodeScanner.clear().catch(err => console.log(err)); } 
 }
 
 function onScanSuccess(qrCodeText) {
     if (isProcessing) return;
-    isProcessing = true;
+    isProcessing = true; // Bloque le capteur pendant le "Slash" visuel
     
-    if (navigator.vibrate) navigator.vibrate(50);
     const ticketNumber = qrCodeText.trim();
-    
     const overlay = document.getElementById('result-overlay');
-    overlay.className = 'loading';
+    const popCard = document.getElementById('pop-card');
+    
+    popCard.className = "pop-card";
+    void popCard.offsetWidth; // Force la réinitialisation de l'animation CSS
+    
     document.getElementById('result-ticket').innerText = ticketNumber;
-    document.getElementById('result-title').innerText = 'VÉRIFICATION...';
-    document.getElementById('result-message').innerText = 'Attente réponse Google...';
+    overlay.classList.remove('hidden');
 
-    // Anti-figeage : On force l'annulation si pas de réponse au bout de 6 secondes
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 6000);
+    // Vérification instantanée en cache local (0ms de latence)
+    let ticket = localDB.find(t => t.id === ticketNumber);
 
-    fetch(API_URL, {
-        method: 'POST',
-        body: JSON.stringify({ qrCode: ticketNumber }),
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-        signal: controller.signal
-    })
-    .then(res => res.json())
-    .then(data => {
-        clearTimeout(timeoutId);
-        if (data.status === 'valid') {
-            overlay.className = 'success';
-            document.getElementById('result-title').innerText = 'VALIDE';
-            document.getElementById('result-message').innerText = 'Entrée enregistrée.';
-        } else if (data.status === 'used') {
-            if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
-            overlay.className = 'error';
-            document.getElementById('result-title').innerText = 'DÉJÀ SCANNÉ';
-            document.getElementById('result-message').innerText = 'Scanné à : ' + (data.time || 'Heure inconnue');
+    if (ticket) {
+        if (ticket.status === "") {
+            // VALIDE !
+            if (navigator.vibrate) navigator.vibrate(80);
+            popCard.classList.add('success-pop');
+            document.getElementById('result-title').innerText = "VALIDE";
+            document.getElementById('result-message').innerText = `Enregistré par ${currentUser}`;
+            
+            ticket.status = "UTILISÉ";
+            ticket.time = new Date().toLocaleTimeString('fr-FR');
+            ticket.user = currentUser;
+            localStorage.setItem('sakafom_db', JSON.stringify(localDB));
+            
+            syncQueue.push({ id: ticket.id, time: ticket.time, user: ticket.user });
+            localStorage.setItem('sakafom_queue', JSON.stringify(syncQueue));
         } else {
-            overlay.className = 'error';
-            document.getElementById('result-title').innerText = 'INCONNU';
-            document.getElementById('result-message').innerText = 'Billet non répertorié dans la liste.';
+            // DEJA UTILISÉ
+            if (navigator.vibrate) navigator.vibrate([150, 80, 150]);
+            popCard.classList.add('error-pop');
+            document.getElementById('result-title').innerText = "DEJA SCANNÉ";
+            document.getElementById('result-message').innerText = `À ${ticket.time} par ${ticket.user}`;
         }
-    })
-    .catch(err => {
-        clearTimeout(timeoutId);
-        overlay.className = 'error';
-        document.getElementById('result-title').innerText = 'ERREUR RÉSEAU';
-        document.getElementById('result-message').innerText = 'La requête a expiré ou le réseau a coupé. Réessayez.';
-    });
+    } else {
+        // INCONNU
+        if (navigator.vibrate) navigator.vibrate([150, 80, 150]);
+        popCard.classList.add('error-pop');
+        document.getElementById('result-title').innerText = "INCONNU";
+        document.getElementById('result-message').innerText = "Billet absent du fichier.";
+    }
+
+    // Cadence automatique : l'animation dure 1.3s, on libère l'appareil à 1.4s pour le ticket suivant
+    setTimeout(() => {
+        overlay.classList.add('hidden');
+        isProcessing = false; 
+        pushSyncQueue(); // Envoi furtif
+    }, 1400);
 }
 
-document.getElementById('btn-next').addEventListener('click', () => {
-    isProcessing = false;
-    document.getElementById('result-overlay').className = 'hidden';
-});
+// --- ÉTAT DES LIEUX ---
+function loadLocalStats() {
+    let total = localDB.length;
+    let scanned = localDB.filter(t => t.status !== "").length;
+    let remaining = Math.max(0, total - scanned);
 
+    document.getElementById('stat-scanned').innerText = total === 0 ? "..." : scanned;
+    document.getElementById('stat-remaining').innerText = total === 0 ? "..." : remaining;
+    document.getElementById('stat-total').innerText = total === 0 ? "..." : total;
+}
 
-// --- PARTIE 2 : VALIDATION MANUELLE ---
-document.getElementById('btn-submit-manual').addEventListener('click', () => {
-    const inputField = document.getElementById('manual-ticket-input');
-    const value = inputField.value.trim();
-    const resultBox = document.getElementById('manual-result');
-    
-    if(!value) return;
-    
-    resultBox.className = "manual-result-box";
-    resultBox.style.background = "#f39c12";
-    resultBox.style.color = "#white";
-    resultBox.innerText = "Validation en cours...";
-    resultBox.classList.remove('hidden');
-
-    fetch(API_URL, {
-        method: 'POST',
-        body: JSON.stringify({ action: 'manual_validate', qrCode: value }),
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' }
-    })
-    .then(res => res.json())
-    .then(data => {
-        if(data.status === 'valid') {
-            resultBox.style.background = "#2ecc71";
-            resultBox.innerText = "SUCCÈS : Le billet " + value + " est maintenant validé !";
-            inputField.value = "";
-        } else {
-            resultBox.style.background = "#e74c3c";
-            resultBox.innerText = "ERREUR : Numéro " + value + " introuvable.";
-        }
-    })
-    .catch(() => {
-        resultBox.style.background = "#e74c3c";
-        resultBox.innerText = "Erreur de connexion réseau.";
-    });
-});
-
-
-// --- PARTIE 3 : ÉTAT DES LIEUX & CORRECTION LECTURE + RESET ---
-function fetchStats() {
-    document.getElementById('stat-scanned').innerText = "...";
-    document.getElementById('stat-remaining').innerText = "...";
-
-    fetch(API_URL, {
-        method: 'POST',
-        body: JSON.stringify({ action: 'stats' }),
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' }
-    })
+document.getElementById('btn-refresh-stats').addEventListener('click', () => {
+    fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'fetch_db' }) })
     .then(res => res.json())
     .then(data => {
         if(data.status === 'success') {
-            document.getElementById('stat-scanned').innerText = data.scanned;
-            document.getElementById('stat-remaining').innerText = data.remaining;
-            document.getElementById('stat-total').innerText = data.total;
-        } else {
-            alert("Erreur de format de données reçues.");
+            localDB = data.db;
+            localStorage.setItem('sakafom_db', JSON.stringify(localDB));
+            loadLocalStats();
+            alert("📊 Liste synchronisée avec succès !");
         }
-    })
-    .catch(err => {
-        document.getElementById('stat-scanned').innerText = "Erreur";
-        document.getElementById('stat-remaining').innerText = "Erreur";
-        alert("Impossible de lire les statistiques depuis Google Sheet. Vérifiez la connexion internet.");
-    });
-}
+    }).catch(() => alert("Erreur de connexion."));
+});
 
-// Option de Reset (Vider la liste)
 document.getElementById('btn-reset-stats').addEventListener('click', () => {
-    if(confirm("⚠️ ATTENTION :\nVoulez-vous vraiment effacer tous les scans du fichier Google Sheet ? Cette action videra les colonnes Statut et Heure pour recommencer à zéro.")) {
+    if(confirm("⚠️ RESET GÉNÉRAL :\nVoulez-vous vider tous les scans du Google Sheets ?")) {
         const btn = document.getElementById('btn-reset-stats');
-        btn.disabled = true;
-        btn.innerText = "Réinitialisation en cours...";
+        btn.disabled = true; btn.innerText = "Attente serveur...";
         
-        fetch(API_URL, {
-            method: 'POST',
-            body: JSON.stringify({ action: 'reset' }),
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' }
-        })
+        fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'reset' }) })
         .then(res => res.json())
         .then(data => {
-            btn.disabled = false;
-            btn.innerText = "⚠️ Réinitialiser la liste (Reset)";
+            btn.disabled = false; btn.innerText = "⚠️ Réinitialiser la liste (Reset)";
             if(data.status === 'success') {
-                alert("✅ Le fichier Google Sheets a été vidé avec succès !");
-                fetchStats();
-            } else {
-                alert("Erreur lors de la réinitialisation.");
+                localDB.forEach(t => { t.status = ""; t.time = ""; t.user = ""; });
+                syncQueue = [];
+                localStorage.setItem('sakafom_db', JSON.stringify(localDB));
+                localStorage.setItem('sakafom_queue', JSON.stringify([]));
+                loadLocalStats();
+                alert("✅ Remis à zéro !");
             }
-        })
-        .catch(() => {
-            btn.disabled = false;
-            btn.innerText = "⚠️ Réinitialiser la liste (Reset)";
-            alert("Erreur réseau lors de la demande de reset.");
-        });
+        }).catch(() => { btn.disabled = false; alert("Erreur réseau."); });
     }
 });
