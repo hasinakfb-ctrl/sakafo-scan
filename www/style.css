@@ -84,3 +84,15 @@ button:disabled { opacity: 0.4; }
 .about-card { background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 16px; padding: 30px; text-align: center; width: 85%; max-width: 290px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
 .about-logo { width: 65px; margin-bottom: 15px; }
 .about-text { color: #4f5f6f; font-size: 14px; line-height: 1.5; margin-top: 15px; font-weight: 500; }
+
+/* --- AJOUTS V3.2 --- */
+
+/* Forcer le flux vidéo propre (caméra arrière) */
+#qr-reader { overflow: hidden; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+#qr-reader video { object-fit: cover; width: 100%; border-radius: 12px; }
+
+/* Styles pour les statistiques détaillées */
+#details-stats-box { width: 100%; max-width: 320px; background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 12px; padding: 15px; margin-bottom: 20px; box-sizing: border-box; }
+.agent-stat-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e9ecef; font-size: 15px; color: #2c3e50; font-weight: bold; }
+.agent-stat-row:last-child { border-bottom: none; }
+.agent-stat-count { color: #2ecc71; font-weight: 900; }
