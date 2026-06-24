@@ -1,6 +1,6 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Scanner SP</string>
+    <string name="app_name">Sakafom-pitiavana</string>
     <string name="title_activity_main">Scanner SP</string>
     <string name="package_name">com.sakafompitiavana.scanner</string>
     <string name="custom_url_scheme">com.sakafompitiavana.scanner</string>
