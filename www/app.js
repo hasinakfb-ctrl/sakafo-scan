@@ -86,6 +86,14 @@ function setUser(name) {
     showScreen('home'); fetchDatabase();
 }
 
+// Nouvelle fonction pour l'utilisateur manuel
+function setCustomUser() {
+    let name = prompt("Entrez le nom de l'agent (Autorisation requise) :");
+    if (name && name.trim() !== "") {
+        setUser(name.trim());
+    }
+}
+
 function logout() {
     currentUser = null; localStorage.removeItem('sakafom_user'); showScreen('user');
 }
@@ -98,17 +106,20 @@ document.getElementById('btn-back-home1').addEventListener('click', () => { stop
 document.getElementById('btn-back-home3').addEventListener('click', () => { showScreen('home'); });
 document.getElementById('btn-back-home4').addEventListener('click', () => { showScreen('home'); });
 
-// Sortie de l'application
+// Sortie de l'application (Fermeture douce)
 document.getElementById('btn-quit').addEventListener('click', () => {
     const farewell = document.getElementById('farewell-screen');
     farewell.classList.remove('hidden');
-    // Petit délai pour forcer le navigateur à peindre l'élément avant de lancer l'animation
+    
     setTimeout(() => {
         farewell.classList.add('active');
-        // Tente de fermer l'application après 2 secondes
+        
+        // Tente de fermer nativement, sinon fige l'écran sur la bénédiction
         setTimeout(() => {
-            try { navigator.app.exitApp(); } catch(e) {} // Cordova/Capacitor
-            try { window.close(); } catch(e) {} // Navigateur web
+            try { navigator.app.exitApp(); } catch(e) {} 
+            try { window.close(); } catch(e) {} 
+            // Si le système bloque la fermeture, l'écran reste bloqué sur "Tahian'i Jesosy e !"
+            // L'utilisateur devra glisser l'application vers le haut pour la fermer, ce qui est le standard Android/iOS.
         }, 2000);
     }, 10);
 });
@@ -159,11 +170,25 @@ function startScanner() {
 
 function stopScanner() { if (html5QrCode) html5QrCode.stop().catch(err => console.log("Déjà arrêté.")); }
 
+// Variables pour éviter le double-scan (Effet rebond)
+let lastScannedTicket = "";
+let lastScanTime = 0;
+
 function onScanSuccess(decodedText) {
     if (isProcessing) return;
-    isProcessing = true; 
     
     const ticketNumber = decodedText.trim();
+    const now = Date.now();
+
+    // ANTI-DOUBLON : Si c'est le MÊME billet scanné il y a moins de 4 secondes, on ignore !
+    if (ticketNumber === lastScannedTicket && (now - lastScanTime) < 4000) {
+        return; 
+    }
+
+    isProcessing = true; 
+    lastScannedTicket = ticketNumber; // Mémorise le dernier billet
+    lastScanTime = now; // Mémorise l'heure exacte du scan
+    
     const overlay = document.getElementById('result-overlay');
     const popCard = document.getElementById('pop-card');
     
@@ -175,7 +200,7 @@ function onScanSuccess(decodedText) {
 
     if (ticket) {
         if (ticket.status === "") {
-            playBeep('success'); // BIP Pro
+            playBeep('success'); 
             popCard.classList.add('success-pop');
             document.getElementById('result-title').innerText = "VALIDE";
             document.getElementById('result-message').innerText = `Enregistré par ${currentUser}`;
@@ -185,18 +210,19 @@ function onScanSuccess(decodedText) {
             syncQueue.push({ id: ticket.id, time: ticket.time, user: ticket.user });
             localStorage.setItem('sakafom_queue', JSON.stringify(syncQueue));
         } else {
-            playBeep('error'); // BUZZER
+            playBeep('error'); 
             popCard.classList.add('error-pop');
             document.getElementById('result-title').innerText = "DÉJA SCANNÉ";
             document.getElementById('result-message').innerText = `À ${ticket.time} par ${ticket.user}`;
         }
     } else {
-        playBeep('error'); // BUZZER
+        playBeep('error'); 
         popCard.classList.add('error-pop');
         document.getElementById('result-title').innerText = "INCONNU";
         document.getElementById('result-message').innerText = "Billet absent du fichier.";
     }
 
+    // Le scanner redevient prêt après 1.4s (mais le même billet reste bloqué 4s)
     setTimeout(() => { overlay.classList.add('hidden'); isProcessing = false; pushSyncQueue(); }, 1400);
 }
 
