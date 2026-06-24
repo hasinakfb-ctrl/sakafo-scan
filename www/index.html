@@ -14,34 +14,48 @@
         <div class="loader"></div>
     </div>
 
+    <div id="user-screen" class="screen">
+        <img src="Logo.png" alt="Logo" class="menu-logo">
+        <h2 class="screen-title">Qui scanne aujourd'hui ?</h2>
+        <div class="menu-buttons">
+            <button class="btn-user" onclick="setUser('Nilaina')">👤 Nilaina</button>
+            <button class="btn-user" onclick="setUser('Tafita')">👤 Tafita</button>
+            <button class="btn-user" onclick="setUser('Fitahiana')">👤 Fitahiana</button>
+            <button class="btn-user" onclick="setUser('Daniel')">👤 Daniel</button>
+        </div>
+    </div>
+
     <div id="home-screen" class="screen">
-        <img src="Logo.png" alt="Logo Sakafom" class="menu-logo">
+        <div class="user-badge">Agent: <strong id="current-user-display">...</strong> <span onclick="logout()" class="logout">⚙️ Changer</span></div>
+        <img src="logo.png" alt="Logo Sakafom" class="menu-logo">
         <h1 class="app-title">SAKAFOM-PITIAVANA</h1>
-        <p class="app-subtitle">Gestion des Entrées</p>
+        
+        <div class="sync-status" id="sync-status">🟢 Mode Hors-ligne prêt</div>
         
         <div class="menu-buttons">
             <button id="btn-go-scan" class="btn-menu btn-scan">📷 Démarrer le Scanner</button>
-            <button id="btn-go-manual" class="btn-menu btn-manual">✏ Validation Manuelle</button>
             <button id="btn-go-stats" class="btn-menu btn-stats">📊 État des Lieux</button>
-            <button id="btn-go-about" class="btn-menu btn-about">ℹ À Propos</button>
+            <button id="btn-go-about" class="btn-menu btn-about">ℹ️ À Propos</button>
         </div>
     </div>
 
     <div id="scanner-screen" class="screen">
         <button id="btn-back-home1" class="btn-back">⬅ Menu principal</button>
         <div id="qr-reader"></div>
+        
         <div id="result-overlay" class="hidden">
-            <h1 id="result-ticket"></h1>
-            <h2 id="result-title"></h2>
-            <p id="result-message"></p>
-            <button id="btn-next">Suivant ➔</button>
+            <div id="pop-card" class="pop-card">
+                <h1 id="result-ticket"></h1>
+                <h2 id="result-title"></h2>
+                <p id="result-message"></p>
+            </div>
         </div>
     </div>
 
     <div id="manual-screen" class="screen">
         <button id="btn-back-home2" class="btn-back">⬅ Menu principal</button>
         <h2>Validation Manuelle</h2>
-        <p class="section-desc">Entrez le numéro du billet écrit sur le ticket (ex: N° 001)</p>
+        <p class="section-desc">Entrez le numéro pour forcer la validation (Ex: N° 001)</p>
         <div class="input-group">
             <input type="text" id="manual-ticket-input" placeholder="Ex: N° 001..." autocomplete="off">
             <button id="btn-submit-manual" class="btn-primary">Valider le Billet</button>
@@ -64,12 +78,12 @@
             </div>
             <div class="stat-box box-gray">
                 <span class="stat-label">Total Prévu</span>
-                <span id="stat-total" class="stat-number">500</span>
+                <span id="stat-total" class="stat-number">...</span>
             </div>
         </div>
 
         <div class="stats-actions">
-            <button id="btn-refresh-stats" class="btn-secondary">🔄 Rafraîchir les données</button>
+            <button id="btn-refresh-stats" class="btn-secondary">🔄 Forcer la mise à jour (Téléchargement)</button>
             <button id="btn-reset-stats" class="btn-danger">⚠️ Réinitialiser la liste (Reset)</button>
         </div>
     </div>
@@ -77,9 +91,9 @@
     <div id="about-screen" class="screen">
         <button id="btn-back-home4" class="btn-back">⬅ Menu principal</button>
         <div class="about-card">
-            <img src="logo.png" alt="Logo" class="about-logo">
-            <h3>Scanner Sakafom v2.0</h3>
-            <p class="about-text">Application développée par KFB pour KFB Ministries</p>
+            <img src="Logo.png" alt="Logo" class="about-logo">
+            <h3>Scanner Sakafom-pitiavana v3.0</h3>
+            <p class="about-text"> Application développée par KFB Tech team pour KFB Ministries. Glory to God ! </p>
         </div>
     </div>
 
