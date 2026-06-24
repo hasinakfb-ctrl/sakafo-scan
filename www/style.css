@@ -1,76 +1,86 @@
 body {
     margin: 0; padding: 0;
     font-family: 'Segoe UI', Arial, sans-serif;
-    background-color: #121212; color: #e0e0e0;
+    background-color: #ffffff; color: #1a1a1a;
     overflow: hidden;
     -webkit-user-select: none; user-select: none;
 }
 
-/* Gestion globale des écrans */
-.screen { display: none; width: 100vw; height: 100vh; flex-direction: column; align-items: center; justify-content: center; box-sizing: border-box; padding: 20px; }
+/* Écrans */
+.screen { display: none; width: 100vw; height: 100vh; flex-direction: column; align-items: center; justify-content: center; box-sizing: border-box; padding: 20px; background-color: #ffffff; }
 .screen.active { display: flex; }
 
-/* Bouton Retour Universel */
-.btn-back { position: absolute; top: 15px; left: 15px; background: #222; color: #fff; border: 1px solid #333; font-size: 14px; padding: 10px 15px; border-radius: 8px; z-index: 99; font-weight: bold; }
-.btn-back:active { background: #333; }
+/* Boutons de Retour Universels */
+.btn-back { position: absolute; top: 15px; left: 15px; background: #f2f2f2; color: #111111; border: 1px solid #dddddd; font-size: 14px; padding: 10px 15px; border-radius: 8px; z-index: 99; font-weight: bold; }
+.btn-back:active { background: #e0e0e0; }
 
 /* Splash Screen */
-.splash-logo { width: 140px; margin-bottom: 25px; animation: pulse 2s infinite ease-in-out; }
+.splash-logo { width: 130px; margin-bottom: 25px; animation: pulse 2s infinite ease-in-out; }
 @keyframes pulse { 0%, 100% { transform: scale(0.96); opacity: 0.8; } 50% { transform: scale(1.04); opacity: 1; } }
-.loader { border: 3px solid #222; border-top: 3px solid #2ecc71; border-radius: 50%; width: 25px; height: 25px; animation: spin 0.8s linear infinite; }
+.loader { border: 3px solid #f3f3f3; border-top: 3px solid #2ecc71; border-radius: 50%; width: 25px; height: 25px; animation: spin 0.8s linear infinite; }
 @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
+/* Choix Utilisateur & Badges */
+.screen-title { font-size: 20px; margin-bottom: 25px; font-weight: bold; color: #2c3e50; }
+.btn-user { background: #f5f6fa; color: #2c3e50; border: 2px solid #dcdde1; padding: 16px; border-radius: 12px; font-size: 16px; font-weight: bold; width: 100%; text-align: left; transition: background 0.2s; }
+.btn-user:active { background: #dcdde1; }
+.user-badge { position: absolute; top: 18px; right: 15px; background: #f2f2f2; color: #2c3e50; padding: 6px 12px; border-radius: 20px; font-size: 11px; border: 1px solid #dddddd; font-weight: bold; }
+.logout { color: #c0392b; cursor: pointer; margin-left: 6px; font-weight: bold; text-decoration: underline; }
+
 /* Écran d'accueil */
-.menu-logo { width: 110px; margin-bottom: 10px; }
-.app-title { font-size: 24px; font-weight: 800; letter-spacing: 1px; margin: 5px 0; color: #fff; }
-.app-subtitle { font-size: 14px; color: #888; margin: 0 0 30px 0; text-transform: uppercase; }
+.menu-logo { width: 110px; margin-bottom: 5px; }
+.app-title { font-size: 22px; font-weight: 800; letter-spacing: 0.5px; margin: 5px 0 15px 0; color: #2c3e50; text-align: center; }
+.sync-status { padding: 10px 15px; border-radius: 8px; font-size: 12px; margin-bottom: 25px; font-weight: bold; text-align: center; width: 85%; max-width: 300px; box-sizing: border-box; }
 .menu-buttons { display: flex; flex-direction: column; gap: 12px; width: 85%; max-width: 320px; }
 
-/* Styles Boutons */
-.btn-menu { width: 100%; padding: 16px; border: none; border-radius: 12px; font-size: 16px; font-weight: bold; text-align: left; color: white; display: flex; align-items: center; cursor: pointer; transition: background 0.2s; }
+/* Styles Boutons du Menu (Vif pour l'extérieur) */
+.btn-menu { width: 100%; padding: 16px; border: none; border-radius: 12px; font-size: 16px; font-weight: bold; text-align: left; color: white; display: flex; align-items: center; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
 .btn-scan { background-color: #2ecc71; }
-.btn-manual { background-color: #3498db; }
-.btn-stats { background-color: #f1c40f; color: #111; }
-.btn-about { background-color: #34495e; }
+.btn-stats { background-color: #f1c40f; color: #111111; }
+.btn-about { background-color: #7f8c8d; }
 .btn-menu:active { opacity: 0.85; transform: scale(0.99); }
 
-.btn-primary { background: #3498db; color: white; padding: 12px; border: none; border-radius: 8px; font-weight: bold; }
-.btn-secondary { background: #222; color: #fff; border: 1px solid #444; padding: 12px; border-radius: 8px; font-weight: bold; width: 100%; margin-bottom: 10px; }
-.btn-danger { background: #c0392b; color: white; padding: 12px; border: none; border-radius: 8px; font-weight: bold; width: 100%; font-size: 13px; }
-button:disabled { opacity: 0.5; }
+.btn-secondary { background: #f9f9f9; color: #333333; border: 2px solid #cccccc; padding: 12px; border-radius: 8px; font-weight: bold; width: 100%; margin-bottom: 12px; font-size: 14px; }
+.btn-secondary:active { background: #eeeeee; }
+.btn-danger { background: #c0392b; color: white; padding: 12px; border: none; border-radius: 8px; font-weight: bold; width: 100%; font-size: 13px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+button:disabled { opacity: 0.4; }
 
-/* Écran Scanner & Overlay de résultat */
-#qr-reader { width: 100%; max-width: 450px; border: none !important; }
+/* Scanner & Animations Fruit Ninja */
+#qr-reader { width: 100%; max-width: 450px; border: none !important; background: #fff; }
 #qr-reader video { border-radius: 12px; }
-#result-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; text-align: center; padding: 20px; box-sizing: border-box; }
+#result-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; z-index: 100; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); }
 #result-overlay.hidden { display: none; }
-#result-overlay.loading { background-color: rgba(243, 156, 18, 0.96); }
-#result-overlay.success { background-color: rgba(46, 204, 113, 0.96); }
-#result-overlay.error { background-color: rgba(231, 76, 60, 0.96); }
-#result-ticket { font-size: 46px; margin: 0; font-weight: 800; color: white; }
-#result-title { font-size: 28px; margin: 10px 0; color: white; }
-#result-message { font-size: 16px; margin: 5px 0 25px 0; color: #fff; opacity: 0.9; }
-#btn-next { background-color: white; color: black; padding: 14px 40px; border: none; border-radius: 30px; font-size: 16px; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.2); }
 
-/* Validation Manuelle */
-.section-desc { font-size: 13px; color: #888; margin-bottom: 20px; text-align: center; }
-.input-group { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 300px; }
-#manual-ticket-input { padding: 14px; border-radius: 8px; border: 1px solid #333; background: #222; color: white; font-size: 16px; text-align: center; }
-.manual-result-box { margin-top: 20px; padding: 15px; border-radius: 8px; width: 100%; max-width: 300px; text-align: center; font-weight: bold; box-sizing: border-box; }
+.pop-card { padding: 40px; border-radius: 24px; text-align: center; box-shadow: 0 15px 35px rgba(0,0,0,0.4); transform: scale(0); width: 80%; max-width: 320px; box-sizing: border-box; }
+.success-pop { background: #2ecc71; animation: juicyPop 1.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+.error-pop { background: #e74c3c; animation: juicyPop 1.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
 
-/* Design Compact de l'état des lieux */
-.compact-stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; width: 100%; max-width: 320px; margin-bottom: 25px; }
-.stat-box { background: #1e1e1e; padding: 15px 10px; border-radius: 12px; display: flex; flex-direction: column; align-items: center; border: 1px solid #2a2a2a; }
-.stat-box.box-green { border-left: 4px solid #2ecc71; }
-.stat-box.box-orange { border-left: 4px solid #f39c12; }
-.stat-box.box-gray { grid-column: span 2; border-top: 1px solid #444; background: #181818; }
-.stat-label { font-size: 12px; color: #888; text-transform: uppercase; margin-bottom: 5px; font-weight: bold; }
-.stat-number { font-size: 24px; font-weight: 800; color: #fff; }
-.box-green .stat-number { color: #2ecc71; }
-.box-orange .stat-number { color: #f39c12; }
+#result-ticket { font-size: 42px; margin: 0; font-weight: 900; color: white; text-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+#result-title { font-size: 28px; margin: 8px 0; color: white; letter-spacing: 1px; font-weight: bold; }
+#result-message { font-size: 15px; margin: 0; color: #ffffff; opacity: 0.95; font-weight: 500; }
+
+/* Animation Juicy (Effet Tranché Fruit Ninja) */
+@keyframes juicyPop {
+    0% { transform: scale(0) rotate(-10deg); opacity: 0; }
+    18% { transform: scale(1.15) rotate(3deg); opacity: 1; }
+    28% { transform: scale(1) rotate(0); opacity: 1; }
+    78% { transform: scale(1) translateY(0); opacity: 1; }
+    100% { transform: translateY(100vh) scale(0.6) rotate(15deg); opacity: 0; }
+}
+
+/* Design État des Lieux sur Fond Blanc */
+.compact-stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; width: 100%; max-width: 320px; margin-bottom: 25px; }
+.stat-box { background: #f8f9fa; padding: 18px 10px; border-radius: 12px; display: flex; flex-direction: column; align-items: center; border: 1px solid #e9ecef; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+.stat-box.box-green { border-left: 5px solid #2ecc71; background: #f4fbf7; }
+.stat-box.box-orange { border-left: 5px solid #e67e22; background: #fffcf9; }
+.stat-box.box-gray { grid-column: span 2; border-top: 2px solid #6c757d; background: #f1f2f6; }
+.stat-label { font-size: 11px; color: #6c757d; text-transform: uppercase; margin-bottom: 5px; font-weight: bold; letter-spacing: 0.5px; }
+.stat-number { font-size: 26px; font-weight: 800; color: #2c3e50; }
+.box-green .stat-number { color: #27ae60; }
+.box-orange .stat-number { color: #d35400; }
 .stats-actions { width: 85%; max-width: 320px; display: flex; flex-direction: column; }
 
 /* À propos */
-.about-card { background: #1e1e1e; border: 1px solid #2a2a2a; border-radius: 16px; padding: 30px; text-align: center; width: 80%; max-width: 280px; }
-.about-logo { width: 70px; margin-bottom: 15px; }
-.about-text { color: #aaa; font-size: 14px; line-height: 1.4; margin-top: 15px; }
+.about-card { background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 16px; padding: 30px; text-align: center; width: 85%; max-width: 290px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
+.about-logo { width: 65px; margin-bottom: 15px; }
+.about-text { color: #4f5f6f; font-size: 14px; line-height: 1.5; margin-top: 15px; font-weight: 500; }
