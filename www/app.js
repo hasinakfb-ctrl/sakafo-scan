@@ -1,9 +1,18 @@
 // CONFIGURATION : LIEN DE DEPLOIEMENT GOOGLE APPS SCRIPT
 const API_URL = "https://script.google.com/macros/s/AKfycbzTx82Wz5mw4OuLV-WvEqQ3MZSJc5DsyMBdXTKu1fzdj1LB_UEFFdceR_3FpD8wd2YiLg/exec";
 
-let localDB = JSON.parse(localStorage.getItem('sakafom_db')) || [];
-let syncQueue = JSON.parse(localStorage.getItem('sakafom_queue')) || [];
-let currentUser = localStorage.getItem('sakafom_user') || null;
+// Sécurisation de la mémoire locale (Évite les crashs WebView/APK)
+let localDB = [];
+let syncQueue = [];
+let currentUser = null;
+
+try {
+    localDB = JSON.parse(localStorage.getItem('sakafom_db')) || [];
+    syncQueue = JSON.parse(localStorage.getItem('sakafom_queue')) || [];
+    currentUser = localStorage.getItem('sakafom_user') || null;
+} catch (e) {
+    console.error("Mémoire locale restreinte ou indisponible :", e);
+}
 
 const screens = {
     splash: document.getElementById('splash-screen'),
@@ -14,41 +23,52 @@ const screens = {
     about: document.getElementById('about-screen')
 };
 
-let html5QrCode = null; // Changement de variable pour l'API pure
+let html5QrCode = null;
 let isProcessing = false;
 
-// --- CYCLE DE DÉMARRAGE ---
+// --- CYCLE DE DÉMARRAGE SÉCURISÉ ---
 function initApp() {
     setTimeout(() => {
-        if (!currentUser) { 
-            showScreen('user'); 
-        } else { 
-            document.getElementById('current-user-display').innerText = currentUser; 
-            showScreen('home'); 
-            updateSyncUI(); 
-            fetchDatabase(); 
+        try {
+            if (!currentUser) { 
+                showScreen('user'); 
+            } else { 
+                const display = document.getElementById('current-user-display');
+                if (display) display.innerText = currentUser; 
+                showScreen('home'); 
+                updateSyncUI(); 
+                fetchDatabase(); 
+            }
+        } catch (err) {
+            console.error("Erreur au démarrage, redirection forcée :", err);
+            showScreen('user'); // Débloque le splash screen en cas de coup dur
         }
     }, 1500);
 }
 initApp();
 
 function showScreen(screenName) {
-    Object.values(screens).forEach(s => s.classList.remove('active'));
-    screens[screenName].classList.add('active');
+    Object.values(screens).forEach(s => {
+        if(s) s.classList.remove('active');
+    });
+    if(screens[screenName]) screens[screenName].classList.add('active');
 }
 
 // GESTION AGENTS
 function setUser(name) {
     currentUser = name;
-    localStorage.setItem('sakafom_user', name);
-    document.getElementById('current-user-display').innerText = currentUser;
+    try {
+        localStorage.setItem('sakafom_user', name);
+    } catch(e){}
+    const display = document.getElementById('current-user-display');
+    if (display) display.innerText = currentUser;
     showScreen('home');
     fetchDatabase();
 }
 
 function logout() {
     currentUser = null;
-    localStorage.removeItem('sakafom_user');
+    try { localStorage.removeItem('sakafom_user'); } catch(e){}
     showScreen('user');
 }
 
@@ -64,6 +84,7 @@ document.getElementById('btn-back-home4').addEventListener('click', () => { show
 // --- SYNCHRONISATION OFFLINE-FIRST ---
 function fetchDatabase() {
     const statusBox = document.getElementById('sync-status');
+    if(!statusBox) return;
     statusBox.innerText = "⏳ Actualisation de la liste...";
     statusBox.style.background = "#e1b12c";
     statusBox.style.color = "#111111";
@@ -73,7 +94,7 @@ function fetchDatabase() {
     .then(data => {
         if(data.status === 'success') {
             localDB = data.db;
-            localStorage.setItem('sakafom_db', JSON.stringify(localDB));
+            try { localStorage.setItem('sakafom_db', JSON.stringify(localDB)); } catch(e){}
             updateSyncUI();
         }
     })
@@ -82,6 +103,8 @@ function fetchDatabase() {
 
 function updateSyncUI() {
     const statusBox = document.getElementById('sync-status');
+    if(!statusBox) return;
+    
     if (syncQueue.length > 0) { 
         statusBox.innerText = `⚠️ ${syncQueue.length} scan(s) en attente de réseau...`; 
         statusBox.style.background = "#e67e22"; 
@@ -102,24 +125,24 @@ function pushSyncQueue() {
     .then(data => {
         if (data.status === 'success') {
             syncQueue = []; 
-            localStorage.setItem('sakafom_queue', JSON.stringify([]));
+            try { localStorage.setItem('sakafom_queue', JSON.stringify([])); } catch(e){}
             updateSyncUI();
         }
     })
     .catch(() => console.log("Attente signal Internet..."));
 }
 
-// --- SCANNER PUR (CAMÉRA ARRIÈRE FORCÉE SANS INTERFACE MOCHE) ---
+// --- SCANNER PUR CORRIGÉ ---
 function startScanner() {
     isProcessing = false;
     document.getElementById('result-overlay').classList.add('hidden');
     
-    // On utilise l'objet brut Html5Qrcode (pas "Scanner") pour tout contrôler
-    html5QrCode = new Html5Qrcode("qr-reader");
+    if (!html5QrCode) {
+        html5QrCode = new Html5Qrcode("qr-reader");
+    }
     
     const config = { fps: 20, qrbox: { width: 250, height: 250 } };
     
-    // facingMode: "environment" force l'appareil photo arrière
     html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess)
     .catch(err => {
         alert("Erreur Caméra : Autorisez l'accès à la caméra pour scanner.");
@@ -128,9 +151,7 @@ function startScanner() {
 
 function stopScanner() { 
     if (html5QrCode) { 
-        html5QrCode.stop().then(() => {
-            html5QrCode.clear();
-        }).catch(err => console.log("Erreur d'arrêt scanner"));
+        html5QrCode.stop().catch(err => console.log("Déjà arrêté ou en attente."));
     } 
 }
 
@@ -152,7 +173,6 @@ function onScanSuccess(decodedText, decodedResult) {
 
     if (ticket) {
         if (ticket.status === "") {
-            // VALIDE
             if (navigator.vibrate) navigator.vibrate(80);
             popCard.classList.add('success-pop');
             document.getElementById('result-title').innerText = "VALIDE";
@@ -161,19 +181,17 @@ function onScanSuccess(decodedText, decodedResult) {
             ticket.status = "UTILISÉ";
             ticket.time = new Date().toLocaleTimeString('fr-FR');
             ticket.user = currentUser;
-            localStorage.setItem('sakafom_db', JSON.stringify(localDB));
+            try { localStorage.setItem('sakafom_db', JSON.stringify(localDB)); } catch(e){}
             
             syncQueue.push({ id: ticket.id, time: ticket.time, user: ticket.user });
-            localStorage.setItem('sakafom_queue', JSON.stringify(syncQueue));
+            try { localStorage.setItem('sakafom_queue', JSON.stringify(syncQueue)); } catch(e){}
         } else {
-            // DÉJÀ UTILISÉ
             if (navigator.vibrate) navigator.vibrate([150, 80, 150]);
             popCard.classList.add('error-pop');
             document.getElementById('result-title').innerText = "DÉJA SCANNÉ";
             document.getElementById('result-message').innerText = `À ${ticket.time} par ${ticket.user}`;
         }
     } else {
-        // INCONNU
         if (navigator.vibrate) navigator.vibrate([150, 80, 150]);
         popCard.classList.add('error-pop');
         document.getElementById('result-title').innerText = "INCONNU";
@@ -187,7 +205,7 @@ function onScanSuccess(decodedText, decodedResult) {
     }, 1400);
 }
 
-// --- ÉTAT DES LIEUX & DÉTAILS AGENTS ---
+// --- ÉTAT DES LIEUX ---
 function loadLocalStats() {
     let total = localDB.length;
     let scannedList = localDB.filter(t => t.status !== "");
@@ -198,7 +216,6 @@ function loadLocalStats() {
     document.getElementById('stat-remaining').innerText = total === 0 ? "..." : remaining;
     document.getElementById('stat-total').innerText = total === 0 ? "..." : total;
 
-    // Calcul des statistiques détaillées par agent
     let agentStats = {};
     scannedList.forEach(ticket => {
         let user = ticket.user || "Inconnu";
@@ -206,7 +223,6 @@ function loadLocalStats() {
         agentStats[user]++;
     });
 
-    // Génération du HTML pour les détails
     let detailsHTML = "";
     for (const [agent, count] of Object.entries(agentStats)) {
         detailsHTML += `<div class="agent-stat-row"><span>👤 ${agent}</span> <span class="agent-stat-count">${count}</span></div>`;
@@ -217,7 +233,6 @@ function loadLocalStats() {
     document.getElementById('details-stats-box').innerHTML = detailsHTML;
 }
 
-// Bouton Afficher/Masquer les détails
 document.getElementById('btn-more-stats').addEventListener('click', () => {
     const box = document.getElementById('details-stats-box');
     box.classList.toggle('hidden');
@@ -229,7 +244,7 @@ document.getElementById('btn-refresh-stats').addEventListener('click', () => {
     .then(data => {
         if(data.status === 'success') {
             localDB = data.db;
-            localStorage.setItem('sakafom_db', JSON.stringify(localDB));
+            try { localStorage.setItem('sakafom_db', JSON.stringify(localDB)); } catch(e){}
             loadLocalStats();
             alert("📊 Liste synchronisée avec succès !");
         }
@@ -248,14 +263,13 @@ document.getElementById('btn-reset-stats').addEventListener('click', () => {
             if(data.status === 'success') {
                 localDB.forEach(t => { t.status = ""; t.time = ""; t.user = ""; });
                 syncQueue = [];
-                localStorage.setItem('sakafom_db', JSON.stringify(localDB));
-                localStorage.setItem('sakafom_queue', JSON.stringify([]));
+                try {
+                    localStorage.setItem('sakafom_db', JSON.stringify(localDB));
+                    localStorage.setItem('sakafom_queue', JSON.stringify([]));
+                } catch(e){}
                 loadLocalStats();
                 alert("✅ Remis à zéro !");
             }
-        }).catch(() => { btn.disabled = false; alert("Erreur réseau."); });
-    }
-});
         }).catch(() => { btn.disabled = false; alert("Erreur réseau."); });
     }
 });
