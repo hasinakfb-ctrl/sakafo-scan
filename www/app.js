@@ -1,5 +1,5 @@
 // CONFIGURATION : LIEN DE DEPLOIEMENT GOOGLE APPS SCRIPT
-const API_URL = "https://script.google.com/macros/s/AKfycbzTx82Wz5mw4OuLV-WvEqQ3MZSJc5DsyMBdXTKu1fzdj1LB_UEFFdceR_3FpD8wd2YiLg/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbwKTMS2ggrp6-VqvepNrFBWPW-c3JMAFIZhQsy9BVE42tVMgcdgNhYlVkNtQ9Op2MpyhQ/exec";
 
 // --- STARTUP FEATURES : Audio Synthétique & Haptique ---
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
