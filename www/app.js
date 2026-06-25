@@ -118,42 +118,79 @@ document.getElementById('btn-quit').addEventListener('click', () => {
         setTimeout(() => {
             try { navigator.app.exitApp(); } catch(e) {} 
             try { window.close(); } catch(e) {} 
-            // Si le système bloque la fermeture, l'écran reste bloqué sur "Tahian'i Jesosy e !"
-            // L'utilisateur devra glisser l'application vers le haut pour la fermer, ce qui est le standard Android/iOS.
+            // Si le système bloque la fermeture, l'écran reste bloqué
         }, 2000);
     }, 10);
 });
 
-// --- SYNCHRONISATION ---
+// --- SYNCHRONISATION (AVEC ROBOT FANTÔME) ---
 function fetchDatabase() {
     const statusBox = document.getElementById('sync-status');
-    statusBox.innerText = "⏳ Actualisation..."; statusBox.style.background = "#e1b12c"; statusBox.style.color = "#111";
+    if(statusBox) {
+        statusBox.innerText = "⏳ Actualisation..."; statusBox.style.background = "#e1b12c"; statusBox.style.color = "#111";
+    }
 
     fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'fetch_db' }) })
     .then(res => res.json())
     .then(data => {
         if(data.status === 'success') {
-            localDB = data.db; localStorage.setItem('sakafom_db', JSON.stringify(localDB)); updateSyncUI();
+            localDB = data.db; 
+            try { localStorage.setItem('sakafom_db', JSON.stringify(localDB)); } catch(e){}
+            updateSyncUI();
         }
     }).catch(() => updateSyncUI());
 }
 
+// 🤖 LE ROBOT INVISIBLE : Rafraîchit les autres appareils toutes les 10 secondes
+function silentFetchDatabase() {
+    // Si l'appareil est en train d'essayer d'envoyer ses propres scans, on ne fait rien pour éviter les conflits
+    if(syncQueue.length > 0) return; 
+
+    fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'fetch_db' }) })
+    .then(res => res.json())
+    .then(data => {
+        if(data.status === 'success') {
+            localDB = data.db;
+            try { localStorage.setItem('sakafom_db', JSON.stringify(localDB)); } catch(e){}
+            // Met à jour les stats en direct si l'utilisateur est sur l'écran des stats
+            const statsScreen = document.getElementById('stats-screen');
+            if(statsScreen && statsScreen.classList.contains('active')) {
+                loadLocalStats();
+            }
+        }
+    }).catch(() => { /* On ne dit rien, c'est invisible */ });
+}
+
+// Lance la mise à jour fantôme toutes les 10 secondes
+setInterval(silentFetchDatabase, 10000);
+
 function updateSyncUI() {
     const statusBox = document.getElementById('sync-status');
+    if(!statusBox) return;
+
     if (syncQueue.length > 0) { 
-        statusBox.innerText = `⚠️ ${syncQueue.length} scan(s) en attente réseau`; statusBox.style.background = "#e67e22"; statusBox.style.color = "#fff"; pushSyncQueue(); 
+        statusBox.innerText = `⚠️ ${syncQueue.length} scan(s) en attente réseau`; 
+        statusBox.style.background = "#e67e22"; statusBox.style.color = "#fff"; 
+        pushSyncQueue(); 
     } else { 
-        statusBox.innerText = `🟢 Base synchronisée (${localDB.length})`; statusBox.style.background = "#2ecc71"; statusBox.style.color = "#fff";
+        statusBox.innerText = `🟢 Base synchronisée (${localDB.length})`; 
+        statusBox.style.background = "#2ecc71"; statusBox.style.color = "#fff";
     }
 }
 
 function pushSyncQueue() {
     if (syncQueue.length === 0) return;
+    
     fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'sync_batch', batch: syncQueue }) })
     .then(res => res.json())
     .then(data => {
         if (data.status === 'success') {
-            syncQueue = []; localStorage.setItem('sakafom_queue', JSON.stringify([])); updateSyncUI();
+            syncQueue = []; 
+            try { localStorage.setItem('sakafom_queue', JSON.stringify([])); } catch(e){}
+            updateSyncUI();
+            
+            // 🤖 Dès qu'on a fini d'envoyer nos scans, on télécharge immédiatement ce que les autres ont fait
+            silentFetchDatabase();
         }
     }).catch(() => console.log("Attente réseau..."));
 }
@@ -161,7 +198,7 @@ function pushSyncQueue() {
 // --- SCANNER ---
 function startScanner() {
     isProcessing = false; document.getElementById('result-overlay').classList.add('hidden');
-    if (audioCtx.state === 'suspended') audioCtx.resume(); // Débloque le son au clic de l'utilisateur
+    if (audioCtx.state === 'suspended') audioCtx.resume(); // Débloque le son
     
     if (!html5QrCode) html5QrCode = new Html5Qrcode("qr-reader");
     html5QrCode.start({ facingMode: "environment" }, { fps: 20, qrbox: { width: 250, height: 250 } }, onScanSuccess)
@@ -186,8 +223,8 @@ function onScanSuccess(decodedText) {
     }
 
     isProcessing = true; 
-    lastScannedTicket = ticketNumber; // Mémorise le dernier billet
-    lastScanTime = now; // Mémorise l'heure exacte du scan
+    lastScannedTicket = ticketNumber; 
+    lastScanTime = now; 
     
     const overlay = document.getElementById('result-overlay');
     const popCard = document.getElementById('pop-card');
@@ -222,7 +259,6 @@ function onScanSuccess(decodedText) {
         document.getElementById('result-message').innerText = "Billet absent du fichier.";
     }
 
-    // Le scanner redevient prêt après 1.4s (mais le même billet reste bloqué 4s)
     setTimeout(() => { overlay.classList.add('hidden'); isProcessing = false; pushSyncQueue(); }, 1400);
 }
 
@@ -252,7 +288,6 @@ function loadLocalStats() {
     document.getElementById('details-stats-box').innerHTML = detailsHTML;
 }
 
-// Toggle détails
 document.getElementById('btn-more-stats').addEventListener('click', () => {
     const box = document.getElementById('details-stats-box');
     box.classList.toggle('hidden');
@@ -260,14 +295,7 @@ document.getElementById('btn-more-stats').addEventListener('click', () => {
 
 document.getElementById('btn-refresh-stats').addEventListener('click', () => {
     showToast("Téléchargement en cours...", "default");
-    fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'fetch_db' }) })
-    .then(res => res.json())
-    .then(data => {
-        if(data.status === 'success') {
-            localDB = data.db; localStorage.setItem('sakafom_db', JSON.stringify(localDB)); loadLocalStats();
-            showToast("Liste synchronisée avec succès !", "success");
-        }
-    }).catch(() => showToast("Erreur de connexion.", "error"));
+    fetchDatabase(); // Utilise la fonction principale pour avoir le retour visuel
 });
 
 // --- RESET PROTÉGÉ PAR ZOKY HASINA ---
@@ -293,7 +321,7 @@ document.getElementById('btn-reset-stats').addEventListener('click', () => {
                 }
             }).catch(() => { btn.disabled = false; showToast("Erreur réseau.", "error"); });
         }
-    } else if (pin !== null) { // S'il n'a pas cliqué sur Annuler
+    } else if (pin !== null) { 
         showToast("Interdit par Zoky Hasina 🛑", "error");
     }
 });
