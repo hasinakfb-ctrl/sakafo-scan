@@ -34,7 +34,7 @@ function playBeep(type) {
 function vibrateClick() { if (navigator.vibrate) navigator.vibrate(15); }
 document.querySelectorAll('button').forEach(btn => btn.addEventListener('click', vibrateClick));
 
-// Toast Notifications (remplace les alertes moches)
+// Toast Notifications
 function showToast(message, type = 'default') {
     const container = document.getElementById('toast-container');
     const toast = document.createElement('div');
@@ -86,12 +86,9 @@ function setUser(name) {
     showScreen('home'); fetchDatabase();
 }
 
-// Nouvelle fonction pour l'utilisateur manuel
 function setCustomUser() {
     let name = prompt("Entrez le nom de l'agent (Autorisation requise) :");
-    if (name && name.trim() !== "") {
-        setUser(name.trim());
-    }
+    if (name && name.trim() !== "") { setUser(name.trim()); }
 }
 
 function logout() {
@@ -106,19 +103,14 @@ document.getElementById('btn-back-home1').addEventListener('click', () => { stop
 document.getElementById('btn-back-home3').addEventListener('click', () => { showScreen('home'); });
 document.getElementById('btn-back-home4').addEventListener('click', () => { showScreen('home'); });
 
-// Sortie de l'application (Fermeture douce)
 document.getElementById('btn-quit').addEventListener('click', () => {
     const farewell = document.getElementById('farewell-screen');
     farewell.classList.remove('hidden');
-    
     setTimeout(() => {
         farewell.classList.add('active');
-        
-        // Tente de fermer nativement, sinon fige l'écran sur la bénédiction
         setTimeout(() => {
             try { navigator.app.exitApp(); } catch(e) {} 
             try { window.close(); } catch(e) {} 
-            // Si le système bloque la fermeture, l'écran reste bloqué
         }, 2000);
     }, 10);
 });
@@ -126,9 +118,7 @@ document.getElementById('btn-quit').addEventListener('click', () => {
 // --- SYNCHRONISATION (AVEC ROBOT FANTÔME) ---
 function fetchDatabase() {
     const statusBox = document.getElementById('sync-status');
-    if(statusBox) {
-        statusBox.innerText = "⏳ Actualisation..."; statusBox.style.background = "#e1b12c"; statusBox.style.color = "#111";
-    }
+    if(statusBox) { statusBox.innerText = "⏳ Actualisation..."; statusBox.style.background = "#e1b12c"; statusBox.style.color = "#111"; }
 
     fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'fetch_db' }) })
     .then(res => res.json())
@@ -141,9 +131,7 @@ function fetchDatabase() {
     }).catch(() => updateSyncUI());
 }
 
-// 🤖 LE ROBOT INVISIBLE : Rafraîchit les autres appareils toutes les 10 secondes
 function silentFetchDatabase() {
-    // Si l'appareil est en train d'essayer d'envoyer ses propres scans, on ne fait rien pour éviter les conflits
     if(syncQueue.length > 0) return; 
 
     fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: 'fetch_db' }) })
@@ -152,16 +140,12 @@ function silentFetchDatabase() {
         if(data.status === 'success') {
             localDB = data.db;
             try { localStorage.setItem('sakafom_db', JSON.stringify(localDB)); } catch(e){}
-            // Met à jour les stats en direct si l'utilisateur est sur l'écran des stats
             const statsScreen = document.getElementById('stats-screen');
-            if(statsScreen && statsScreen.classList.contains('active')) {
-                loadLocalStats();
-            }
+            if(statsScreen && statsScreen.classList.contains('active')) { loadLocalStats(); }
         }
-    }).catch(() => { /* On ne dit rien, c'est invisible */ });
+    }).catch(() => {});
 }
 
-// Lance la mise à jour fantôme toutes les 10 secondes
 setInterval(silentFetchDatabase, 10000);
 
 function updateSyncUI() {
@@ -188,26 +172,120 @@ function pushSyncQueue() {
             syncQueue = []; 
             try { localStorage.setItem('sakafom_queue', JSON.stringify([])); } catch(e){}
             updateSyncUI();
-            
-            // 🤖 Dès qu'on a fini d'envoyer nos scans, on télécharge immédiatement ce que les autres ont fait
             silentFetchDatabase();
         }
     }).catch(() => console.log("Attente réseau..."));
 }
 
-// --- SCANNER ---
+// --- SCANNER (NOUVELLE GESTION DES OBJECTIFS & FICHIERS) ---
+let isScannerRunning = false;
+
 function startScanner() {
-    isProcessing = false; document.getElementById('result-overlay').classList.add('hidden');
-    if (audioCtx.state === 'suspended') audioCtx.resume(); // Débloque le son
+    isProcessing = false; 
+    document.getElementById('result-overlay').classList.add('hidden');
+    if (audioCtx.state === 'suspended') audioCtx.resume(); 
     
     if (!html5QrCode) html5QrCode = new Html5Qrcode("qr-reader");
-    html5QrCode.start({ facingMode: "environment" }, { fps: 20, qrbox: { width: 250, height: 250 } }, onScanSuccess)
-    .catch(err => showToast("Erreur Caméra", "error"));
+
+    // Étape 1 : Récupérer toutes les caméras du smartphone
+    Html5Qrcode.getCameras().then(devices => {
+        if (devices && devices.length > 0) {
+            const cameraSelect = document.getElementById('camera-select');
+            
+            // Ne remplir la liste que si elle est vide (pour ne pas la reconstruire à chaque fois)
+            if (cameraSelect.options.length === 0) {
+                let defaultCameraId = devices[0].id; // 1er objectif par défaut
+                
+                devices.forEach((device, index) => {
+                    const option = document.createElement('option');
+                    option.value = device.id;
+                    // Nom lisible pour l'agent
+                    option.text = device.label || `Objectif Caméra n°${index + 1}`;
+                    cameraSelect.appendChild(option);
+                    
+                    // On essaie de repérer automatiquement la meilleure caméra arrière (back)
+                    let lbl = device.label.toLowerCase();
+                    if (lbl.includes('back') || lbl.includes('arrière') || lbl.includes('0')) {
+                        defaultCameraId = device.id;
+                    }
+                });
+                
+                cameraSelect.value = defaultCameraId;
+            }
+            
+            document.getElementById('scanner-controls').classList.remove('hidden');
+            switchCamera(cameraSelect.value); // Lancer avec la caméra choisie
+        } else {
+            // Si le téléphone ne veut pas donner la liste, on lance le mode standard
+            switchCamera({ facingMode: "environment" });
+        }
+    }).catch(err => {
+        switchCamera({ facingMode: "environment" });
+    });
 }
 
-function stopScanner() { if (html5QrCode) html5QrCode.stop().catch(err => console.log("Déjà arrêté.")); }
+function switchCamera(cameraConfig) {
+    const config = typeof cameraConfig === 'string' ? { deviceId: { exact: cameraConfig } } : cameraConfig;
+    
+    // Si la caméra tourne déjà, on la coupe avant de la relancer
+    if (isScannerRunning) {
+        html5QrCode.stop().then(() => {
+            isScannerRunning = false;
+            runCamera(config);
+        }).catch(() => { runCamera(config); }); // Forcer au cas où
+    } else {
+        runCamera(config);
+    }
+}
 
-// Variables pour éviter le double-scan (Effet rebond)
+function runCamera(config) {
+    html5QrCode.start(config, { fps: 20, qrbox: { width: 250, height: 250 } }, onScanSuccess)
+    .then(() => { isScannerRunning = true; })
+    .catch(err => showToast("Impossible d'accéder à cet objectif", "error"));
+}
+
+function stopScanner() { 
+    if (html5QrCode && isScannerRunning) { 
+        html5QrCode.stop()
+        .then(() => { isScannerRunning = false; })
+        .catch(err => console.log("Déjà arrêté.")); 
+    } 
+}
+
+// --- ÉCOUTEURS D'ÉVÉNEMENTS POUR L'UX SCANNER ---
+
+// 1. Quand l'agent change d'objectif dans la liste
+document.getElementById('camera-select').addEventListener('change', (e) => {
+    switchCamera(e.target.value);
+});
+
+// 2. Quand l'agent clique sur le bouton discret (Plan B : Image)
+document.getElementById('btn-upload-file').addEventListener('click', () => {
+    document.getElementById('file-upload').click();
+});
+
+// 3. Quand l'image est sélectionnée dans la galerie
+document.getElementById('file-upload').addEventListener('change', (e) => {
+    if (e.target.files.length === 0) return;
+    const file = e.target.files[0];
+    
+    if (!html5QrCode) html5QrCode = new Html5Qrcode("qr-reader");
+    
+    showToast("🔍 Analyse de la photo en cours...", "default");
+    
+    // Analyse le fichier image sans utiliser la caméra
+    html5QrCode.scanFile(file, true)
+        .then(decodedText => {
+            e.target.value = ""; // Vider l'input pour pouvoir rescanner la même image plus tard
+            onScanSuccess(decodedText);
+        })
+        .catch(err => {
+            e.target.value = ""; 
+            showToast("❌ Aucun code lisible sur la photo", "error");
+        });
+});
+
+// --- RÉSULTAT DU SCAN (Caméra ou Fichier) ---
 let lastScannedTicket = "";
 let lastScanTime = 0;
 
@@ -217,10 +295,7 @@ function onScanSuccess(decodedText) {
     const ticketNumber = decodedText.trim();
     const now = Date.now();
 
-    // ANTI-DOUBLON : Si c'est le MÊME billet scanné il y a moins de 4 secondes, on ignore !
-    if (ticketNumber === lastScannedTicket && (now - lastScanTime) < 4000) {
-        return; 
-    }
+    if (ticketNumber === lastScannedTicket && (now - lastScanTime) < 4000) { return; }
 
     isProcessing = true; 
     lastScannedTicket = ticketNumber; 
@@ -295,7 +370,7 @@ document.getElementById('btn-more-stats').addEventListener('click', () => {
 
 document.getElementById('btn-refresh-stats').addEventListener('click', () => {
     showToast("Téléchargement en cours...", "default");
-    fetchDatabase(); // Utilise la fonction principale pour avoir le retour visuel
+    fetchDatabase(); 
 });
 
 // --- RESET PROTÉGÉ PAR ZOKY HASINA ---
