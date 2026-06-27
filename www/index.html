@@ -10,6 +10,53 @@
     <link rel="stylesheet" href="style.css">
     
     <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+
+    <style>
+        /* UI Élégante pour le choix de la caméra */
+        #scanner-controls {
+            margin: 10px auto 15px auto;
+            width: 90%;
+            max-width: 300px;
+        }
+        .camera-select-wrapper {
+            position: relative;
+            width: 100%;
+        }
+        .camera-select {
+            width: 100%;
+            padding: 12px 40px 12px 20px;
+            border-radius: 30px;
+            border: 2px solid #e1b12c;
+            background-color: #2f3640;
+            color: #f5f6fa;
+            font-size: 14px;
+            font-weight: bold;
+            appearance: none;
+            -webkit-appearance: none;
+            cursor: pointer;
+            outline: none;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+        .camera-select-icon {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            pointer-events: none;
+            font-size: 16px;
+        }
+        .btn-discreet-upload {
+            background: transparent;
+            border: none;
+            color: #7f8fa6;
+            font-size: 13px;
+            text-decoration: underline;
+            margin-top: 25px;
+            width: 100%;
+            text-align: center;
+            cursor: pointer;
+        }
+    </style>
 </head>
 <body>
 
@@ -48,7 +95,18 @@
 
     <div id="scanner-screen" class="screen">
         <button id="btn-back-home1" class="btn-back">⬅ Menu principal</button>
+        
+        <div id="scanner-controls" class="hidden">
+            <div class="camera-select-wrapper">
+                <select id="camera-select" class="camera-select"></select>
+                <span class="camera-select-icon">📸 ▼</span>
+            </div>
+        </div>
+
         <div id="qr-reader"></div>
+
+        <input type="file" id="file-upload" accept="image/*" class="hidden">
+        <button id="btn-upload-file" class="btn-discreet-upload">Ou charger une image depuis la galerie</button>
         
         <div id="result-overlay" class="hidden">
             <div id="pop-card" class="pop-card">
@@ -79,8 +137,7 @@
         </div>
 
         <button id="btn-more-stats" class="btn-secondary" style="margin-bottom: 20px;">🔍 Afficher les détails</button>
-        <div id="details-stats-box" class="hidden">
-            </div>
+        <div id="details-stats-box" class="hidden"></div>
 
         <div class="stats-actions">
             <button id="btn-refresh-stats" class="btn-secondary">🔄 Forcer la mise à jour (Téléchargement)</button>
@@ -92,7 +149,7 @@
         <button id="btn-back-home4" class="btn-back">⬅ Menu principal</button>
         <div class="about-card">
             <img src="Logo.png" alt="Logo" class="about-logo">
-            <h3>Scanner Sakafom-pitiavana v4.0</h3>
+            <h3>Scanner Sakafom-pitiavana v4.1</h3>
             <p class="about-text">Copyrights - June 2026 <br> Développée par KFB Tech team pour KFB Ministries.<br>Ho an'i Jesosy irery ihany ny voninahitra !</p>
         </div>
     </div>
